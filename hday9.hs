@@ -51,31 +51,39 @@ area ((x,y), (x',y')) = (abs (x - x') + 1) * (abs (y - y') + 1)
 part1 :: [Coord] -> Int
 part1 coords = max (area m1)  (area m2)
   where
-    c0 = coords !! 0
-    (xmin, xmax, ymin, ymax) = foldl' g (fst c0, fst c0, snd c0, snd c0) (drop 1 coords)
-      where
-        g (xd, xu, yd, yu) (x, y)
-          | x < xd && y < yd = (x,xu, y, yu)
-          | x < xd && y > yu = (x, xu, yd, y)
-          | x > xu && y < yd = (xd, x, y, yu)
-          | x > xu && y > yu = (xd, x, yd, y)
-          | otherwise        = (xd, xu, yd, yu)
-
+    (xmin, xmax, ymin, ymax) = limits coords
     xmean = (xmin + xmax) `quot` 2
     ymean = (ymin + ymax) `quot` 2
-
-    (first, second, third, fourth) = foldl' f ([],[],[],[]) coords
-      where
-        f (first', second', third', fourth') p@(x, y)
-          | x <= xmean && y <= ymean = (p:first', second', third', fourth')
-          | x <= xmean && y > ymean  = (first', p:second', third', fourth')
-          | x > xmean && y <= ymean  = (first', second', p:third', fourth')
-          | otherwise                = (first', second', third', p:fourth')
+    (first, second, third, fourth) = quarters coords xmean ymean
 
     m1 = maximumBy (comparing area) (liftA2 (,) first fourth)
     m2 = maximumBy (comparing area) (liftA2 (,) second third)
 
--- the brute force solution
+limits :: [Coord] -> (Int, Int, Int, Int)
+limits coords = foldl' g (fst c0, fst c0, snd c0, snd c0) (drop 1 coords)
+  where
+    c0 = coords !! 0
+    g (xmin, xmax, ymin, ymax) (x, y) = (xmin', xmax', ymin', ymax')
+      where
+        xmin' | x < xmin  = x
+              | otherwise = xmin
+        ymin' | y < ymin  = y
+              | otherwise = ymin
+        xmax' | x > xmax  = x
+              | otherwise = xmax
+        ymax' | y > ymax  = y
+              | otherwise = ymax
+
+quarters :: [Coord] -> Int -> Int -> ([Coord], [Coord], [Coord], [Coord])
+quarters coords xmean ymean = foldl' f ([],[],[],[]) coords
+  where
+    f (first, second, third, fourth) p@(x, y)
+      | x <= xmean && y <= ymean = (p:first, second, third, fourth)
+      | x <= xmean && y > ymean  = (first, p:second, third, fourth)
+      | x > xmean && y <= ymean  = (first, second, p:third, fourth)
+      | otherwise                = (first, second, third, p:fourth)
+
+-- a brute force solution, but slower.
 part1' :: [Coord] -> Int
 part1' coords = area (maximumBy (comparing area) pairs)
   where
