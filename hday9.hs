@@ -24,7 +24,6 @@ import Text.ParserCombinators.ReadP
 
 type Coord = (Int, Int)
 
-
 main :: IO ()
 main = do
   coords <- getDatas "day9.txt"
@@ -51,13 +50,12 @@ area ((x,y), (x',y')) = (abs (x - x') + 1) * (abs (y - y') + 1)
 part1 :: [Coord] -> Int
 part1 coords = max (area m1)  (area m2)
   where
-    (xmin, xmax, ymin, ymax) = limits coords
-    xmean = (xmin + xmax) `quot` 2
-    ymean = (ymin + ymax) `quot` 2
-    (first, second, third, fourth) = quarters coords xmean ymean
+    (first, second, third, fourth) = quarters coords (limits coords)
 
-    m1 = maximumBy (comparing area) (liftA2 (,) first fourth)
-    m2 = maximumBy (comparing area) (liftA2 (,) second third)
+    maxArea q1 q2 = maximumBy (comparing area) (liftA2 (,) q1 q2)
+
+    m1 = maxArea first fourth
+    m2 = maxArea second third
 
 limits :: [Coord] -> (Int, Int, Int, Int)
 limits coords = foldl' g (fst c0, fst c0, snd c0, snd c0) (drop 1 coords)
@@ -74,9 +72,12 @@ limits coords = foldl' g (fst c0, fst c0, snd c0, snd c0) (drop 1 coords)
         ymax' | y > ymax  = y
               | otherwise = ymax
 
-quarters :: [Coord] -> Int -> Int -> ([Coord], [Coord], [Coord], [Coord])
-quarters coords xmean ymean = foldl' f ([],[],[],[]) coords
+quarters :: [Coord] -> (Int,Int,Int,Int) -> ([Coord], [Coord], [Coord], [Coord])
+quarters coords (xmin,xmax,ymin,ymax) = foldl' f ([],[],[],[]) coords
   where
+    xmean = (xmin + xmax) `quot` 2
+    ymean = (ymin + ymax) `quot` 2
+
     f (first, second, third, fourth) p@(x, y)
       | x <= xmean && y <= ymean = (p:first, second, third, fourth)
       | x <= xmean && y > ymean  = (first, p:second, third, fourth)
